@@ -7,6 +7,7 @@
 ```bash
 git clone https://github.com/pngz-dev/pngz.git
 cd pngz
+cd demo
 python -m http.server 8080
 ```
 and visit localhost:8080. Doesn't imports any CDNs or anything that requires internet.
