@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>pngz</title>
+<style>
+:root{
+  --bg:#ffffff;--fg:#111111;--fg-2:#374151;--muted:#6b7280;--faint:#9ca3af;
+  --border:#e5e7eb;--border-2:#d1d5db;--subtle:#f9fafb;--subtle-2:#f3f4f6;
+  --accent:#0066ff;--accent-h:#0052cc;--accent-soft:#eef4ff;
+  --good:#059669;--bad:#dc2626;--warn:#d97706;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);--shadow:0 2px 8px rgba(0,0,0,.06);
+  --r:10px;--r-lg:16px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;min-height:100vh}
+button{font:inherit;color:inherit}
+::selection{background:var(--accent);color:#fff}
+
+.app{max-width:960px;margin:0 auto;padding:48px 28px 72px}
+.hero{margin-bottom:28px}
+.hero h1{margin:0;font-size:44px;font-weight:700;letter-spacing:-.045em;line-height:1;color:var(--fg)}
+.hero h1 .z{color:var(--accent)}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.spacer{flex:1}
+
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:var(--r);padding:9px 16px;font-size:14px;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s,box-shadow .13s,transform .07s;background:transparent;white-space:nowrap;letter-spacing:-.005em}
+.btn:active{transform:translateY(.5px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow-sm),inset 0 -1px 0 rgba(0,0,0,.08)}
+.btn-primary:hover:not(:disabled){background:var(--accent-h)}
+.btn-ghost{background:#fff;border-color:var(--border-2);color:var(--fg-2)}
+.btn-ghost:hover:not(:disabled){background:var(--subtle);border-color:var(--faint)}
+.btn-sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn svg{display:block}
+
+.tool-opts{display:inline-flex;align-items:center;gap:14px;padding-left:6px}
+.level-pick{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.level-pick select{font:inherit;font-size:13px;color:var(--fg);background:#fff;border:1px solid var(--border-2);border-radius:8px;padding:6px 26px 6px 10px;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' fill='none' stroke='%236b7280' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer}
+.level-pick select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.opt-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);cursor:pointer;user-select:none}
+.opt-toggle input{appearance:none;width:32px;height:18px;border-radius:9px;background:var(--border-2);position:relative;cursor:pointer;transition:background .15s;flex-shrink:0}
+.opt-toggle input:checked{background:var(--accent)}
+.opt-toggle input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.opt-toggle input:checked::after{transform:translateX(14px)}
+
+.dict{border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;background:#fff;overflow:hidden}
+.dict-head{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;font-size:13px;color:var(--fg-2);font-weight:500;background:var(--subtle)}
+.dict-head:hover{background:var(--subtle-2)}
+.dict-head .chev{transition:transform .15s;color:var(--faint)}
+.dict.open .dict-head .chev{transform:rotate(90deg)}
+.dict-head .stat{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.dict-head .dot{width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.dict-head .dot.ok{background:var(--good)}
+.dict-head .dot.warn{background:var(--warn)}
+.dict-body{padding:14px;display:none;border-top:1px solid var(--border)}
+.dict.open .dict-body{display:block}
+.dict.drop-target{outline:2px dashed var(--accent);outline-offset:-6px}
+.dict-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.dict-row:last-child{margin-bottom:0}
+.dict-hint{font-size:12.5px;color:var(--muted);line-height:1.5}
+.dict-hint strong{color:var(--fg-2);font-weight:600}
+.dict-progress{height:4px;background:var(--subtle-2);border-radius:2px;overflow:hidden;margin-top:6px}
+.dict-progress > div{height:100%;background:var(--accent);width:0%;transition:width .3s}
+.dict-progress.done > div{background:var(--good)}
+.switch{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-2);cursor:pointer;user-select:none}
+.switch input{appearance:none;width:32px;height:18px;border-radius:9px;background:var(--border-2);position:relative;cursor:pointer;transition:background .15s;flex-shrink:0}
+.switch input:checked{background:var(--accent)}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.switch input:checked::after{transform:translateX(14px)}
+.switch input:disabled{opacity:.5;cursor:not-allowed}
+.sample-list{margin-top:8px;border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;background:var(--subtle)}
+.sample-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12.5px}
+.sample-item:last-child{border-bottom:0}
+.sample-item .name{flex:1;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sample-item .size{font-family:var(--mono);font-size:11.5px;color:var(--faint);flex-shrink:0}
+.sample-item .rm{background:none;border:0;color:var(--faint);cursor:pointer;padding:2px 4px;border-radius:4px;font-size:14px;line-height:1;flex-shrink:0}
+.sample-item .rm:hover{color:var(--bad);background:#fee2e2}
+.sample-empty{padding:14px;text-align:center;color:var(--faint);font-size:12.5px}
+
+.stage{position:relative;border:1px solid var(--border);border-radius:var(--r-lg);background:#fff;box-shadow:var(--shadow);overflow:hidden;min-height:380px}
+.dropzone{display:flex;align-items:center;justify-content:center;min-height:380px;padding:40px;transition:background .15s;cursor:pointer;border-radius:var(--r-lg)}
+.dropzone:hover{background:var(--subtle)}
+.dropzone.drag{background:var(--accent-soft);outline:2px dashed var(--accent);outline-offset:-14px}
+.dz-inner{text-align:center;pointer-events:none}
+.dz-icon{width:56px;height:56px;margin:0 auto 18px;border-radius:14px;background:var(--subtle-2);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background .15s,color .15s,transform .15s}
+.dropzone:hover .dz-icon{background:var(--accent-soft);color:var(--accent)}
+.dropzone.drag .dz-icon{background:var(--accent);color:#fff;transform:scale(1.06)}
+.dz-title{font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--fg)}
+.dz-sub{margin-top:6px;font-size:13.5px;color:var(--muted)}
+
+.result{padding:24px}
+.result[hidden]{display:none}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.res-grid.view-mode{grid-template-columns:1fr}
+.res-grid.view-mode .card-a{display:none}
+@media (max-width:680px){.res-grid{grid-template-columns:1fr}}
+
+.card{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--subtle);display:flex;flex-direction:column}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--border);background:#fff;font-size:12px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.card-head .tag{font-family:var(--mono);font-size:11px;letter-spacing:0;text-transform:none;color:var(--fg-2);background:var(--subtle-2);padding:2px 7px;border-radius:5px}
+.card-body{display:flex;align-items:center;justify-content:center;padding:16px;min-height:220px;flex:1;background:linear-gradient(45deg,#eef0f3 25%,transparent 25%) -8px 0,linear-gradient(-45deg,#eef0f3 25%,transparent 25%) -8px 0,linear-gradient(45deg,transparent 75%,#eef0f3 75%),linear-gradient(-45deg,transparent 75%,#eef0f3 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.card-body canvas{max-width:100%;max-height:340px;height:auto;width:auto;display:block;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.view-mode .card-body canvas{max-height:560px}
+
+.stats{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:18px}
+.stat-row{display:grid;grid-template-columns:1fr auto;align-items:center;padding:10px 14px;font-size:13.5px;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:0}
+.stat-row .k{color:var(--muted)}
+.stat-row .v{font-family:var(--mono);font-size:12.5px;color:var(--fg);font-weight:500}
+.stat-row .v .good{color:var(--good)}
+.stat-row .v .bad{color:var(--bad)}
+.stat-row .v .dim{color:var(--faint)}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.spinner{width:14px;height:14px;border:2px solid var(--border-2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay{position:absolute;inset:0;background:rgba(255,255,255,.82);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-size:14px;color:var(--fg-2);z-index:5}
+.overlay[hidden]{display:none}
+.overlay .spinner{width:22px;height:22px;border-width:2.5px}
+.overlay .cancel{margin-top:6px;font-size:13px}
+.overlay .sub{font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+
+.foot{margin-top:20px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--faint);flex-wrap:wrap;gap:8px}
+.foot .status{display:inline-flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--faint);transition:background .2s}
+.dot.ok{background:var(--good)}
+.dot.err{background:var(--bad)}
+
+.err-banner{border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:var(--r);padding:12px 14px;font-size:13.5px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.err-banner[hidden]{display:none}
+.err-banner svg{flex-shrink:0;margin-top:1px}
+
+.fname{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:12px;text-align:center;word-break:break-all}
+.kbd{font-family:var(--mono);font-size:11px;background:var(--subtle-2);border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--fg-2)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="hero">
+    <h1>png<span class="z">z</span></h1>
+  </header>
+
+  <section class="toolbar">
+    <button id="btnEncode" class="btn btn-primary" disabled>
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1v9m0-9L4 4.5M7.5 1L11 4.5M2 10.5v2.2c0 .7.6 1.3 1.3 1.3h8.4c.7 0 1.3-.6 1.3-1.3v-2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Choose Image
+    </button>
+    <button id="btnDecode" class="btn btn-ghost" disabled>
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 14V5m0 9L4 10.5M7.5 14L11 10.5M2 4.5V2.3C2 1.6 2.6 1 3.3 1h8.4c.7 0 1.3.6 1.3 1.3v2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Open .pngz
+    </button>
+    <button id="btnView" class="btn btn-ghost" disabled>
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M1 7.5C2.5 4.5 4.8 3 7.5 3s5 1.5 6.5 4.5C12.5 10.5 10.2 12 7.5 12S2.5 10.5 1 7.5z" stroke="currentColor" stroke-width="1.5"/><circle cx="7.5" cy="7.5" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+      View .pngz
+    </button>
+    <div class="spacer"></div>
+    <div class="tool-opts">
+      <label class="opt-toggle" title="Search filter strategies for smallest output">
+        <input type="checkbox" id="optimize">
+        Optimize
+      </label>
+      <label class="level-pick" title="zstd compression level">
+        <span>Level</span>
+        <select id="level">
+          <option value="3">3</option>
+          <option value="9">9</option>
+          <option value="15">15</option>
+          <option value="19" selected>19</option>
+          <option value="22">22</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section id="dictPanel" class="dict">
+    <div id="dictHead" class="dict-head">
+      <svg class="chev" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M3 1l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Dictionary</span>
+      <span class="dot" id="dictDot"></span>
+      <span class="stat" id="dictStat">0 samples</span>
+    </div>
+    <div class="dict-body" id="dictBody">
+      <div class="dict-row">
+        <button id="btnAddSample" class="btn btn-ghost btn-sm" disabled>Add samples</button>
+        <button id="btnBuildDict" class="btn btn-ghost btn-sm" disabled>Build dictionary</button>
+        <button id="btnImportDict" class="btn btn-ghost btn-sm">Import .dict</button>
+        <button id="btnExportDict" class="btn btn-ghost btn-sm" disabled>Export .dict</button>
+        <button id="btnClearDict" class="btn btn-ghost btn-sm">Clear</button>
+        <label class="switch"><input type="checkbox" id="useDict" disabled> Use dictionary</label>
+      </div>
+      <div class="dict-row">
+        <label class="opt-toggle" title="Use fastCover training (faster, slightly less compression)">
+          <input type="checkbox" id="fastCover" checked>
+          Fast training
+        </label>
+      </div>
+      <div class="dict-row">
+        <div class="dict-hint" id="dictHint"></div>
+      </div>
+      <div class="dict-progress" id="dictProgress"><div></div></div>
+      <div id="sampleList" class="sample-list" style="display:none"></div>
+      <div class="dict-row" id="dictError" style="display:none">
+        <div class="dict-hint" style="color:var(--bad)" id="dictErrorMsg"></div>
+      </div>
+    </div>
+  </section>
+
+  <input id="fileEncode" type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" hidden>
+  <input id="fileDecode" type="file" accept=".pngz,application/x-pngz" hidden>
+  <input id="fileView" type="file" accept=".pngz,application/x-pngz" hidden>
+  <input id="fileSamples" type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg,.zip,application/zip" multiple hidden>
+  <input id="fileDict" type="file" accept=".dict,application/octet-stream" hidden>
+
+  <section class="stage">
+    <div id="dropzone" class="dropzone">
+      <div class="dz-inner">
+        <div class="dz-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="8.5" cy="9" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="dz-title">Drop a file here</div>
+        <div class="dz-sub">PNG · JPEG to encode &nbsp;—&nbsp; pngz to open or view &nbsp;—&nbsp; zip for samples</div>
+      </div>
+    </div>
+
+    <div id="result" class="result" hidden>
+      <div id="errBanner" class="err-banner" hidden>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5v4M8 11.2v.05" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span id="errMsg"></span>
+      </div>
+
+      <div id="resGrid" class="res-grid">
+        <div class="card card-a">
+          <div class="card-head"><span>Original</span><span id="tagA" class="tag">—</span></div>
+          <div class="card-body"><canvas id="canvasA"></canvas></div>
+        </div>
+        <div class="card card-b">
+          <div class="card-head"><span id="labelB">pngz</span><span id="tagB" class="tag">—</span></div>
+          <div class="card-body"><canvas id="canvasB"></canvas></div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="actions">
+        <button id="btnDownload" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1v9m0 0L4 6.5M7.5 10L11 6.5M2 10.5v2.2c0 .7.6 1.3 1.3 1.3h8.4c.7 0 1.3-.6 1.3-1.3v-2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download
+        </button>
+        <button id="btnAgain" class="btn btn-ghost">New file</button>
+      </div>
+
+      <div class="fname" id="fname"></div>
+    </div>
+
+    <div id="overlay" class="overlay" hidden>
+      <div class="spinner"></div>
+      <div id="overlayText">Working…</div>
+      <div class="sub" id="overlaySub"></div>
+      <button id="btnCancel" class="btn btn-ghost btn-sm cancel">Cancel</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="status"><span id="dot" class="dot"></span><span id="status">initializing zstd…</span></span>
+    <span><span class="kbd">⌘</span> <span class="kbd">O</span> open · <span class="kbd">⌘</span> <span class="kbd">S</span> save</span>
+  </footer>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const MAGIC = new Uint8Array([0x89,0x50,0x4e,0x47,0x7a,0x0d,0x0a,0x1a]);
+const DICT_MIN_SAMPLES = 5;
+const DICT_TARGET_BYTES = 11 * 1024 * 1024;
+const MAX_SAMPLES_BYTES = 64 * 1024 * 1024;
+const MAX_ZIP_BYTES = 256 * 1024 * 1024;
+const MAX_ZIP_ENTRIES = 4096;
+const MAX_ZIP_ENTRY_BYTES = 64 * 1024 * 1024;
+
+const $ = (id) => document.getElementById(id);
+
+const els = {
+  btnEncode: $('btnEncode'), btnDecode: $('btnDecode'), btnView: $('btnView'),
+  fileEncode: $('fileEncode'), fileDecode: $('fileDecode'), fileView: $('fileView'), fileSamples: $('fileSamples'), fileDict: $('fileDict'),
+  dropzone: $('dropzone'), result: $('result'), resGrid: $('resGrid'),
+  errBanner: $('errBanner'), errMsg: $('errMsg'),
+  canvasA: $('canvasA'), canvasB: $('canvasB'),
+  tagA: $('tagA'), tagB: $('tagB'), labelB: $('labelB'),
+  stats: $('stats'), btnDownload: $('btnDownload'), btnAgain: $('btnAgain'),
+  overlay: $('overlay'), overlayText: $('overlayText'), overlaySub: $('overlaySub'), btnCancel: $('btnCancel'),
+  status: $('status'), dot: $('dot'), fname: $('fname'), level: $('level'),
+  optimize: $('optimize'), fastCover: $('fastCover'),
+  dictPanel: $('dictPanel'), dictHead: $('dictHead'), dictBody: $('dictBody'), dictDot: $('dictDot'),
+  dictStat: $('dictStat'), dictHint: $('dictHint'), dictProgress: $('dictProgress'),
+  dictError: $('dictError'), dictErrorMsg: $('dictErrorMsg'),
+  btnAddSample: $('btnAddSample'), btnBuildDict: $('btnBuildDict'),
+  btnImportDict: $('btnImportDict'), btnExportDict: $('btnExportDict'),
+  btnClearDict: $('btnClearDict'), useDict: $('useDict'),
+  toast: $('toast'), sampleList: $('sampleList'),
+};
+
+let worker = null;
+let workerReady = false;
+let workerReadyResolve = null;
+let jobId = 1;
+const pending = new Map();
+
+let dictState = { samples: [], dict: null, dictTrained: false };
+let current = { mode: null, downloadBlob: null, downloadName: '' };
+
+function createWorker() {
+  worker = new Worker('pngz-worker.js');
+  worker.addEventListener('message', onWorkerMessage);
+  worker.addEventListener('error', (e) => {
+    setStatus('worker error', 'err');
+    showError('Worker error: ' + (e.message || 'unknown'));
+  });
+}
+
+function onWorkerMessage(e) {
+  const msg = e.data;
+  if (msg.type === 'ready') {
+    workerReady = true;
+    if (workerReadyResolve) workerReadyResolve();
+    return;
+  }
+  if (msg.type === 'progress' && msg.id) {
+    const p = pending.get(msg.id);
+    if (p && p.onProgress) p.onProgress(msg.stage, msg.info);
+    return;
+  }
+  const p = pending.get(msg.id);
+  if (!p) return;
+  pending.delete(msg.id);
+  if (msg.type === 'error') p.reject(new Error(msg.message || 'worker error'));
+  else p.resolve(msg);
+}
+
+function callWorker(req, transfer, onProgress) {
+  return new Promise((resolve, reject) => {
+    const id = jobId++;
+    pending.set(id, { resolve, reject, onProgress });
+    worker.postMessage({ ...req, id }, transfer || []);
+  });
+}
+
+function waitForWorker() {
+  if (workerReady) return Promise.resolve();
+  return new Promise((resolve) => { workerReadyResolve = resolve; });
+}
+
+function killAndRestartWorker() {
+  for (const p of pending.values()) p.reject(new Error('cancelled'));
+  pending.clear();
+  worker.terminate();
+  workerReady = false;
+  workerReadyResolve = null;
+  createWorker();
+}
+
+function showToast(msg) {
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => els.toast.classList.remove('show'), 2400);
+}
+
+function setStatus(text, kind) {
+  els.status.textContent = text;
+  els.dot.classList.remove('ok', 'err');
+  if (kind === 'ok') els.dot.classList.add('ok');
+  if (kind === 'err') els.dot.classList.add('err');
+}
+
+function showOverlay(t, sub) {
+  els.overlayText.textContent = t;
+  els.overlaySub.textContent = sub || '';
+  els.overlay.hidden = false;
+}
+function hideOverlay() { els.overlay.hidden = true; }
+function showError(m) { els.errBanner.hidden = false; els.errMsg.textContent = m; }
+function clearError() { els.errBanner.hidden = true; els.errMsg.textContent = ''; }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function fmtMs(ms) {
+  if (ms < 1) return '<1 ms';
+  if (ms < 1000) return Math.round(ms) + ' ms';
+  return (ms / 1000).toFixed(2) + ' s';
+}
+
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('DecompressionStream unavailable');
+  const ds = new DecompressionStream('deflate-raw');
+  const writer = ds.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  const reader = ds.readable.getReader();
+  const parts = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    total += value.length;
+    if (total > MAX_ZIP_ENTRY_BYTES) { try { writer.abort(); } catch {} throw new Error('zip entry too large'); }
+  }
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+function isJunkName(name) {
+  if (!name) return true;
+  if (name.endsWith('/')) return true;
+  if (name.startsWith('__MACOSX/')) return true;
+  if (name.startsWith('._')) return true;
+  const base = name.split('/').pop();
+  if (!base) return true;
+  if (base.startsWith('.')) return true;
+  if (base === 'Thumbs.db' || base === 'desktop.ini') return true;
+  return false;
+}
+
+function looksLikeImage(name) {
+  return /\.(png|jpe?g)$/i.test(name);
+}
+
+async function unzipEntries(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 22) throw new Error('not a zip');
+  if (bytes.length > MAX_ZIP_BYTES) throw new Error('zip too large');
+
+  let eocd = -1;
+  const minStart = Math.max(0, bytes.length - 65557);
+  for (let i = bytes.length - 22; i >= minStart; i--) {
+    if (bytes[i] === 0x50 && bytes[i+1] === 0x4B && bytes[i+2] === 0x05 && bytes[i+3] === 0x06) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error('not a zip');
+
+  const dv = new DataView(bytes.buffer, bytes.byteOffset + eocd);
+  const entryCount = dv.getUint16(10, true);
+  const cdSize = dv.getUint32(12, true);
+  const cdOffset = dv.getUint32(16, true);
+  if (cdOffset + cdSize > bytes.length) throw new Error('invalid zip');
+  if (entryCount > MAX_ZIP_ENTRIES) throw new Error('too many zip entries');
+
+  const entries = [];
+  let off = cdOffset;
+  for (let i = 0; i < entryCount; i++) {
+    if (off + 46 > bytes.length) break;
+    if (bytes[off] !== 0x50 || bytes[off+1] !== 0x4B || bytes[off+2] !== 0x01 || bytes[off+3] !== 0x02) break;
+    const edv = new DataView(bytes.buffer, bytes.byteOffset + off);
+    const method = edv.getUint16(10, true);
+    const compSize = edv.getUint32(20, true);
+    const uncompSize = edv.getUint32(24, true);
+    const nameLen = edv.getUint16(28, true);
+    const extraLen = edv.getUint16(30, true);
+    const commentLen = edv.getUint16(32, true);
+    const localOffset = edv.getUint32(42, true);
+    const nameStart = off + 46;
+    const nameEnd = nameStart + nameLen;
+    if (nameEnd > bytes.length) break;
+
+    let name = '';
+    for (let j = nameStart; j < nameEnd; j++) name += String.fromCharCode(bytes[j]);
+    off = nameEnd + extraLen + commentLen;
+
+    if (isJunkName(name)) continue;
+    if (!looksLikeImage(name)) continue;
+    if (uncompSize > MAX_ZIP_ENTRY_BYTES) continue;
+
+    if (localOffset + 30 > bytes.length) continue;
+    if (bytes[localOffset] !== 0x50 || bytes[localOffset+1] !== 0x4B || bytes[localOffset+2] !== 0x03 || bytes[localOffset+3] !== 0x04) continue;
+
+    const ldv = new DataView(bytes.buffer, bytes.byteOffset + localOffset);
+    const lNameLen = ldv.getUint16(26, true);
+    const lExtraLen = ldv.getUint16(28, true);
+    const dataStart = localOffset + 30 + lNameLen + lExtraLen;
+    if (dataStart + compSize > bytes.length) continue;
+    const data = bytes.subarray(dataStart, dataStart + compSize);
+
+    let raw;
+    try {
+      if (method === 0) raw = data.slice();
+      else if (method === 8) raw = await inflateRaw(data.slice());
+      else continue;
+    } catch (e) {
+      continue;
+    }
+    if (uncompSize > 0 && raw.length !== uncompSize) continue;
+    entries.push({ name, bytes: raw });
+  }
+  return entries;
+}
+
+async function blobToImageData(blob) {
+  const bitmap = await createImageBitmap(blob);
+  const w = bitmap.width, h = bitmap.height;
+  if (w * h > 268435456) { bitmap.close?.(); throw new Error('image too large'); }
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close?.();
+  return ctx.getImageData(0, 0, w, h);
+}
+
+function imageDataToBlob(imageData) {
+  const c = document.createElement('canvas');
+  c.width = imageData.width;
+  c.height = imageData.height;
+  c.getContext('2d').putImageData(imageData, 0, 0);
+  return new Promise((res, rej) => {
+    c.toBlob((b) => b ? res(b) : rej(new Error('encode failed')), 'image/png');
+  });
+}
+
+function drawTo(canvas, imageData) {
+  canvas.width = imageData.width;
+  canvas.height = imageData.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function setStatRows(rows) {
+  els.stats.innerHTML = rows.map(([k, v]) =>
+    `<div class="stat-row"><span class="k">${k}</span><span class="v">${v}</span></div>`
+  ).join('');
+}
+
+function renderSampleList() {
+  const n = dictState.samples.length;
+  if (n === 0) {
+    els.sampleList.style.display = 'none';
+    els.sampleList.innerHTML = '';
+    return;
+  }
+  els.sampleList.style.display = 'block';
+  const shown = dictState.samples.slice(-50).reverse();
+  const items = shown.map((s) => {
+    const realIdx = dictState.samples.indexOf(s);
+    return `<div class="sample-item"><span class="name">${escapeHtml(s.name || 'sample')}</span><span class="size">${fmtBytes(s.bytes.length)}</span><button class="rm" data-idx="${realIdx}" title="Remove">×</button></div>`;
+  }).join('');
+  const more = n > 50 ? `<div class="sample-empty">… and ${n - 50} more</div>` : '';
+  els.sampleList.innerHTML = items + more;
+}
+
+els.sampleList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.rm');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.idx, 10);
+  if (idx >= 0 && idx < dictState.samples.length) {
+    dictState.samples.splice(idx, 1);
+    dictState.dictTrained = false;
+    dictState.dict = null;
+    updateDictUI();
+  }
+});
+
+function updateDictUI() {
+  const n = dictState.samples.length;
+  const bytes = dictState.samples.reduce((a, s) => a + s.bytes.length, 0);
+  const trained = dictState.dictTrained && dictState.dict;
+
+  let statText = `${n} sample${n === 1 ? '' : 's'}`;
+  if (n > 0) statText += ` · ${fmtBytes(bytes)}`;
+  if (trained) statText += ' · dict ready';
+  els.dictStat.textContent = statText;
+
+  els.dictDot.classList.remove('ok', 'warn');
+  if (trained) els.dictDot.classList.add('ok');
+  else if (n > 0) els.dictDot.classList.add('warn');
+
+  els.btnAddSample.disabled = !workerReady;
+  els.btnBuildDict.disabled = !workerReady || n < DICT_MIN_SAMPLES;
+  els.btnExportDict.disabled = !trained;
+  els.useDict.disabled = !trained;
+  if (trained) els.useDict.checked = true;
+
+  if (trained) {
+    els.dictHint.innerHTML = `Dictionary trained: <strong>${fmtBytes(dictState.dict.length)}</strong>. Encode will use it when the switch is on.`;
+  } else if (n > 0 && n < DICT_MIN_SAMPLES) {
+    els.dictHint.innerHTML = `<strong>${n}</strong> sample${n === 1 ? '' : 's'} collected. Add <strong>${DICT_MIN_SAMPLES - n}</strong> more to enable training.`;
+  } else if (n >= DICT_MIN_SAMPLES) {
+    const over = bytes >= DICT_TARGET_BYTES;
+    const msg = over 
+      ? "Ready to train. You have plenty of data."
+      : `Add <strong>${fmtBytes(DICT_TARGET_BYTES - bytes)}</strong> more for optimal results.`;
+    els.dictHint.innerHTML = `<strong>${n}</strong> samples · <strong>${fmtBytes(bytes)}</strong> collected. ${msg}`;
+  } else {
+    els.dictHint.innerHTML = `Add images or drop a <strong>.zip</strong> of them. pngz filters them and trains a personal dictionary.`;
+  }
+
+  const pct = Math.min(100, Math.round((bytes / DICT_TARGET_BYTES) * 100));
+  els.dictProgress.classList.toggle('done', trained || pct >= 100);
+  els.dictProgress.firstElementChild.style.width = pct + '%';
+
+  els.dictError.style.display = 'none';
+  renderSampleList();
+}
+
+function activeDict() {
+  if (!dictState.dictTrained || !dictState.dict) return null;
+  if (!els.useDict.checked) return null;
+  return dictState.dict;
+}
+
+async function addSampleFromBlob(blob, name) {
+  const id = await blobToImageData(blob);
+  const pixels = id.data.slice().buffer;
+  const res = await callWorker({
+    type: 'extractFiltered',
+    pixels, width: id.width, height: id.height,
+  }, [pixels]);
+  return { name, bytes: new Uint8Array(res.bytes) };
+}
+
+async function addSampleBlobs(items) {
+  let totalBytes = dictState.samples.reduce((a, s) => a + s.bytes.length, 0);
+  let added = 0, skipped = 0;
+  for (const item of items) {
+    try {
+      const sample = await addSampleFromBlob(item.blob, item.name);
+      if (totalBytes + sample.bytes.length > MAX_SAMPLES_BYTES) { skipped++; continue; }
+      totalBytes += sample.bytes.length;
+      dictState.samples.push(sample);
+      added++;
+    } catch (e) {
+      skipped++;
+    }
+  }
+  return { added, skipped };
+}
+
+async function processSampleFiles(files) {
+  showToast(`Processing ${files.length} item${files.length === 1 ? '' : 's'}…`);
+  let blobs = [];
+  let skipped = 0;
+
+  for (const file of files) {
+    if (/\.zip$/i.test(file.name) || file.type === 'application/zip') {
+      try {
+        const buf = await file.arrayBuffer();
+        const entries = await unzipEntries(buf);
+        for (const entry of entries) {
+          blobs.push({
+            name: entry.name,
+            blob: new Blob([entry.bytes]),
+          });
+        }
+      } catch (e) {
+        skipped++;
+        console.warn('zip failed', file.name, e);
+      }
+    } else if (/\.(png|jpe?g)$/i.test(file.name) || /^image\/(png|jpeg)$/.test(file.type)) {
+      blobs.push({ name: file.name, blob: file });
+    } else {
+      skipped++;
+    }
+  }
+
+  if (!blobs.length) {
+    showToast('No usable samples found');
+    if (skipped) updateDictUI();
+    return;
+  }
+
+  const { added, skipped: innerSkipped } = await addSampleBlobs(blobs);
+  skipped += innerSkipped;
+
+  dictState.dictTrained = false;
+  dictState.dict = null;
+  updateDictUI();
+
+  if (skipped > 0) showToast(`Added ${added}, skipped ${skipped}`);
+  else showToast(`Added ${added} sample${added === 1 ? '' : 's'}`);
+}
+
+async function runEncode(file) {
+  clearError();
+  els.result.hidden = false;
+  els.dropzone.hidden = true;
+  els.resGrid.classList.remove('view-mode');
+  showOverlay('Decoding source…');
+
+  const t0 = performance.now();
+  let imageData;
+  try {
+    imageData = await blobToImageData(file);
+  } catch (e) {
+    hideOverlay();
+    showError('Could not read image: ' + e.message);
+    return;
+  }
+
+  drawTo(els.canvasA, imageData);
+  els.tagA.textContent = `${imageData.width}×${imageData.height}`;
+
+  const level = parseInt(els.level.value, 10);
+  const optimize = els.optimize.checked;
+  const dict = activeDict();
+
+  showOverlay(optimize ? 'Optimizing (searching strategies)…' : 'Encoding…');
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const pixels = imageData.data.slice().buffer;
+  const dictBuf = dict ? dict.slice().buffer : null;
+
+  let res;
+  const tEnc0 = performance.now();
+  try {
+    res = await callWorker({
+      type: 'encode',
+      pixels,
+      width: imageData.width,
+      height: imageData.height,
+      level,
+      optimize,
+      dict: dictBuf,
+    }, [pixels], (stage, info) => {
+      if (stage === 'filter') els.overlayText.textContent = 'Filtering…';
+      else if (stage === 'compress') els.overlayText.textContent = 'Compressing…';
+      else if (stage === 'verify') els.overlayText.textContent = 'Verifying…';
+      else if (stage === 'search') els.overlayText.textContent = 'Searching strategies…';
+      else if (stage === 'palette') els.overlayText.textContent = 'Building palette…';
+      els.overlaySub.textContent = info || '';
+    });
+  } catch (e) {
+    hideOverlay();
+    if (e.message === 'cancelled') { setStatus('cancelled', 'err'); return; }
+    showError('Encode failed: ' + e.message);
+    return;
+  }
+  const tEnc = performance.now() - tEnc0;
+
+  const decoded = new ImageData(new Uint8ClampedArray(res.pixels), res.width, res.height);
+  drawTo(els.canvasB, decoded);
+  els.tagB.textContent = `${res.width}×${res.height}`;
+  els.labelB.textContent = 'pngz';
+
+  const bytes = new Uint8Array(res.bytes);
+  const origSize = file.size;
+  const newSize = bytes.length;
+  const delta = ((newSize - origSize) / origSize) * 100;
+  const saved = delta < 0;
+  const deltaStr = (delta > 0 ? '+' : '') + delta.toFixed(1) + '%';
+  const deltaClass = saved ? 'good' : 'bad';
+  const bpp = (newSize * 8) / (imageData.width * imageData.height);
+
+  const rows = [
+    ['Original size', fmtBytes(origSize)],
+    ['pngz size', `${fmtBytes(newSize)} <span class="${deltaClass}">(${deltaStr})</span>`],
+    ['Ratio', (origSize / newSize).toFixed(2) + '×'],
+    ['Bits per pixel', bpp.toFixed(3)],
+    ['Strategy', escapeHtml(res.strategy || 'standard')],
+    ['Dictionary', res.dictMode === 1 ? '<span class="good">used</span>' : '<span class="dim">none</span>'],
+    ['Optimize', optimize ? '<span class="good">on</span>' : '<span class="dim">off</span>'],
+    ['Encode time', fmtMs(tEnc)],
+    ['Decode time', fmtMs(res.decodeTime || 0)],
+    ['Total', fmtMs(performance.now() - t0)],
+  ];
+  setStatRows(rows);
+
+  current.mode = 'encode';
+  current.downloadBlob = new Blob([bytes], { type: 'application/x-pngz' });
+  current.downloadName = file.name.replace(/\.[^.]+$/, '') + '.pngz';
+  els.btnDownload.textContent = 'Download .pngz';
+  els.btnDownload.disabled = false;
+  els.fname.textContent = current.downloadName;
+
+  hideOverlay();
+  setStatus('encoded · ' + fmtMs(tEnc), 'ok');
+}
+
+async function runDecode(file) {
+  clearError();
+  els.result.hidden = false;
+  els.dropzone.hidden = true;
+  els.resGrid.classList.remove('view-mode');
+  showOverlay('Reading file…');
+
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dict = activeDict();
+
+  showOverlay('Decoding pngz…');
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const t0 = performance.now();
+  let res;
+  try {
+    res = await callWorker({
+      type: 'decode',
+      bytes: buf.buffer,
+      dict: dict ? dict.slice().buffer : null,
+    }, [buf.buffer]);
+  } catch (e) {
+    hideOverlay();
+    if (e.message === 'cancelled') { setStatus('cancelled', 'err'); return; }
+    showError('Decode failed: ' + e.message);
+    return;
+  }
+  const tDec = performance.now() - t0;
+
+  const imageData = new ImageData(new Uint8ClampedArray(res.pixels), res.width, res.height);
+  drawTo(els.canvasA, imageData);
+  els.tagA.textContent = `${imageData.width}×${imageData.height}`;
+
+  const pngBlob = await imageDataToBlob(imageData);
+  drawTo(els.canvasB, imageData);
+  els.tagB.textContent = fmtBytes(pngBlob.size);
+  els.labelB.textContent = 'PNG (decoded)';
+
+  const bpp = (pngBlob.size * 8) / (imageData.width * imageData.height);
+  setStatRows([
+    ['pngz size', fmtBytes(file.size)],
+    ['Decoded PNG size', fmtBytes(pngBlob.size)],
+    ['Dimensions', `${imageData.width} × ${imageData.height}`],
+    ['Decode time', fmtMs(tDec)],
+    ['Bits per pixel', bpp.toFixed(3)],
+  ]);
+
+  current.mode = 'decode';
+  current.downloadBlob = pngBlob;
+  current.downloadName = file.name.replace(/\.pngz$/i, '') + '.png';
+  els.btnDownload.textContent = 'Download .png';
+  els.btnDownload.disabled = false;
+  els.fname.textContent = current.downloadName;
+
+  hideOverlay();
+  setStatus('decoded · ' + fmtMs(tDec), 'ok');
+}
+
+async function runView(file) {
+  clearError();
+  els.result.hidden = false;
+  els.dropzone.hidden = true;
+  els.resGrid.classList.add('view-mode');
+  showOverlay('Reading file…');
+
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const dict = activeDict();
+
+  showOverlay('Decoding pngz…');
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const t0 = performance.now();
+  let res;
+  try {
+    res = await callWorker({
+      type: 'decode',
+      bytes: buf.buffer,
+      dict: dict ? dict.slice().buffer : null,
+    }, [buf.buffer]);
+  } catch (e) {
+    hideOverlay();
+    if (e.message === 'cancelled') { setStatus('cancelled', 'err'); return; }
+    showError('Decode failed: ' + e.message);
+    return;
+  }
+  const tDec = performance.now() - t0;
+
+  const imageData = new ImageData(new Uint8ClampedArray(res.pixels), res.width, res.height);
+  drawTo(els.canvasB, imageData);
+  els.tagB.textContent = `${imageData.width}×${imageData.height}`;
+  els.labelB.textContent = 'pngz · viewed';
+
+  const bpp = (file.size * 8) / (imageData.width * imageData.height);
+  setStatRows([
+    ['pngz size', fmtBytes(file.size)],
+    ['Dimensions', `${imageData.width} × ${imageData.height}`],
+    ['Decode time', fmtMs(tDec)],
+    ['Bits per pixel', bpp.toFixed(3)],
+  ]);
+
+  const pngBlob = await imageDataToBlob(imageData);
+  current.mode = 'view';
+  current.downloadBlob = pngBlob;
+  current.downloadName = file.name.replace(/\.pngz$/i, '') + '.png';
+  els.btnDownload.textContent = 'Download PNG';
+  els.btnDownload.disabled = false;
+  els.fname.textContent = file.name;
+
+  hideOverlay();
+  setStatus('viewed · ' + fmtMs(tDec), 'ok');
+}
+
+function reset() {
+  els.result.hidden = true;
+  els.dropzone.hidden = false;
+  els.resGrid.classList.remove('view-mode');
+  clearError();
+  current = { mode: null, downloadBlob: null, downloadName: '' };
+  els.btnDownload.disabled = true;
+  els.fileEncode.value = '';
+  els.fileDecode.value = '';
+  els.fileView.value = '';
+  setStatus('ready', 'ok');
+}
+
+function pickEncode() { els.fileEncode.click(); }
+function pickDecode() { els.fileDecode.click(); }
+function pickView() { els.fileView.click(); }
+
+els.btnEncode.addEventListener('click', pickEncode);
+els.btnDecode.addEventListener('click', pickDecode);
+els.btnView.addEventListener('click', pickView);
+els.btnAgain.addEventListener('click', reset);
+els.dropzone.addEventListener('click', pickEncode);
+
+els.fileEncode.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) runEncode(f);
+  e.target.value = '';
+});
+
+els.fileDecode.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) runDecode(f);
+  e.target.value = '';
+});
+
+els.fileView.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) runView(f);
+  e.target.value = '';
+});
+
+els.btnDownload.addEventListener('click', () => {
+  if (!current.downloadBlob) return;
+  const url = URL.createObjectURL(current.downloadBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = current.downloadName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+els.dictHead.addEventListener('click', () => els.dictPanel.classList.toggle('open'));
+els.btnAddSample.addEventListener('click', () => els.fileSamples.click());
+
+els.fileSamples.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  if (!files.length) return;
+  await processSampleFiles(files);
+});
+
+els.btnBuildDict.addEventListener('click', async () => {
+  if (dictState.samples.length < DICT_MIN_SAMPLES) return;
+  const fastCover = els.fastCover.checked;
+  showOverlay('Training dictionary…');
+  await new Promise((r) => requestAnimationFrame(r));
+  try {
+    const buffers = dictState.samples.map((s) => s.bytes.slice().buffer);
+    const res = await callWorker({
+      type: 'train',
+      samples: buffers,
+      maxSize: 110000,
+      fastCover
+    }, buffers, (stage) => {
+      if (stage === 'train') els.overlayText.textContent = 'Training…';
+    });
+    const dict = new Uint8Array(res.dict);
+    dictState.dict = dict;
+    dictState.dictTrained = true;
+    showToast(`Dictionary trained: ${fmtBytes(dict.length)}`);
+  } catch (e) {
+    els.dictError.style.display = 'flex';
+    els.dictErrorMsg.textContent = 'Training failed: ' + e.message;
+  } finally {
+    hideOverlay();
+    updateDictUI();
+  }
+});
+
+els.btnImportDict.addEventListener('click', () => els.fileDict.click());
+
+els.fileDict.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    const dictBytes = new Uint8Array(buf);
+    if (dictBytes.length < 1024) throw new Error('File too small to be a valid dictionary');
+    
+    dictState.samples = []; 
+    dictState.dict = dictBytes;
+    dictState.dictTrained = true;
+    
+    updateDictUI();
+    showToast(`Imported dictionary (${fmtBytes(dictBytes.length)})`);
+    els.useDict.checked = true;
+  } catch (err) {
+    showError('Failed to import dictionary: ' + err.message);
+  }
+});
+
+els.btnExportDict.addEventListener('click', () => {
+  if (!dictState.dict) return;
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < dictState.dict.length; i++) {
+    h ^= dictState.dict[i];
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const hashStr = h.toString(16).padStart(8, '0');
+
+  const blob = new Blob([dictState.dict], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pngz-${hashStr}.dict`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+els.btnClearDict.addEventListener('click', () => {
+  dictState.samples = [];
+  dictState.dict = null;
+  dictState.dictTrained = false;
+  updateDictUI();
+  showToast('Dictionary cleared');
+});
+
+els.btnCancel.addEventListener('click', () => {
+  killAndRestartWorker();
+  hideOverlay();
+  setStatus('cancelled', 'err');
+});
+
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  dragDepth++;
+  els.dropzone.classList.add('drag');
+  if (els.dictPanel.classList.contains('open')) els.dictPanel.classList.add('drop-target');
+});
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) {
+    els.dropzone.classList.remove('drag');
+    els.dictPanel.classList.remove('drop-target');
+  }
+});
+window.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  els.dropzone.classList.remove('drag');
+  els.dictPanel.classList.remove('drop-target');
+
+  const all = Array.from(e.dataTransfer.files);
+  if (!all.length) return;
+
+  const zips = all.filter((f) => /\.zip$/i.test(f.name) || f.type === 'application/zip');
+  const dicts = all.filter((f) => f.name.endsWith('.dict'));
+  const f = all[0];
+  const onDict = els.dictPanel.classList.contains('open');
+
+  if (dicts.length === 1 && all.length === 1) {
+    const file = dicts[0];
+    try {
+      const buf = await file.arrayBuffer();
+      const dictBytes = new Uint8Array(buf);
+      if (dictBytes.length < 1024) throw new Error('File too small');
+      
+      dictState.samples = []; 
+      dictState.dict = dictBytes;
+      dictState.dictTrained = true;
+      
+      updateDictUI();
+      showToast(`Imported dictionary (${fmtBytes(dictBytes.length)})`);
+      els.useDict.checked = true;
+    } catch (err) {
+      showError('Failed to import dictionary: ' + err.message);
+    }
+    return;
+  }
+
+  if (zips.length && (onDict || all.length > 1 || /\.zip$/i.test(f.name))) {
+    await processSampleFiles(all);
+    return;
+  }
+
+  if (!f) return;
+  const isPngz = /\.pngz$/i.test(f.name) || f.type === 'application/x-pngz';
+  if (isPngz) {
+    if (e.shiftKey) return runView(f);
+    return runDecode(f);
+  }
+  if (/\.(png|jpe?g)$/i.test(f.name) || /^image\/(png|jpeg)$/.test(f.type)) {
+    return runEncode(f);
+  }
+  showError('Unsupported file.');
+  els.result.hidden = false;
+  els.dropzone.hidden = true;
+});
+
+document.addEventListener('keydown', (e) => {
+  const meta = e.metaKey || e.ctrlKey;
+  if (meta && e.key.toLowerCase() === 'o') { e.preventDefault(); pickEncode(); }
+  else if (meta && e.key.toLowerCase() === 's') {
+    if (current.downloadBlob) { e.preventDefault(); els.btnDownload.click(); }
+  } else if (e.key === 'Escape') {
+    if (!els.result.hidden) reset();
+  }
+});
+
+createWorker();
+
+(async () => {
+  try {
+    await waitForWorker();
+    els.btnEncode.disabled = false;
+    els.btnDecode.disabled = false;
+    els.btnView.disabled = false;
+    updateDictUI();
+    setStatus('ready', 'ok');
+  } catch (e) {
+    setStatus('worker failed', 'err');
+    showError('Could not initialize worker: ' + (e?.message || e));
+    els.result.hidden = true;
+    els.dropzone.hidden = false;
+  }
+})();
+</script>
+</body>
+</html>
