@@ -2,7 +2,7 @@
 
 A lossless image format. PNG's filtering, Zstandard's compression, and dictionaries.
 
-Live: https://pngz.sodiumoptifine45.workers.dev/
+Live: https://pngz-dev.github.io/pngz/demo/
 
 ---
 
@@ -41,7 +41,7 @@ The pattern is consistent: the more structured the content, the bigger the win.
 
 ## Try it
 
-**Live tool:** https://pngz.sodiumoptifine45.workers.dev/
+**Live tool:** https://pngz-dev.github.io/pngz/demo/
 
 Drop a PNG or JPEG. Get a `.pngz` file. Download it.
 
